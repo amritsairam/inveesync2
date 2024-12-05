@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Processing Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .email {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .email h2 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .email p {
+            margin: 5px 0;
+        }
+        .email a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .email a:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group input[type="text"].missing-field,
+        .form-group input[type="number"].missing-field {
+            background-color: #ffdddd;
+        }
+        .form-group table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .form-group table th,
+        .form-group table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        .form-group table th {
+            background-color: #f4f4f9;
+        }
+        .form-group button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #0056b3;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #004494;
+        }
+        .attachment {
+            margin-top: 10px;
+        }
+        .attachment img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Processing Results</h1>
+        {% for email in emails %}
+            <div class="email">
+                <h2>Subject: {{ email.subject }}</h2>
+                <p>Link to Email Thread: <a href="{{ email.thread_link }}" target="_blank">View Email</a></p>
+                {% if email.contains_po %}
+                    <p><strong>This email contains a purchase order.</strong></p>
+                    <form action="/update_po/{{ loop.index0 }}" method="post">
+                        <div class="form-group">
+                            <label for="customer_po_number">Customer PO Number</label>
+                            <input type="text" id="customer_po_number" name="customer_po_number" value="{{ email.po_data.customer_po_number }}" {% if not email.po_data.customer_po_number %}class="missing-field"{% endif %}>
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_name">Customer Name</label>
+                            <input type="text" id="customer_name" name="customer_name" value="{{ email.po_data.customer_name }}" {% if not email.po_data.customer_name %}class="missing-field"{% endif %}>
+                        </div>
+                        {% if email.po_data.customer_details %}
+                            <div class="form-group">
+                                <label for="customer_details">Customer Details</label>
+                                <input type="text" id="customer_details" name="customer_details" value="{{ email.po_data.customer_details }}">
+                            </div>
+                        {% endif %}
+                        {% if email.po_data.applicable_taxes %}
+                            <div class="form-group">
+                                <label for="applicable_taxes">Applicable Taxes</label>
+                                <input type="text" id="applicable_taxes" name="applicable_taxes" value="{{ email.po_data.gst_number }}">
+                            </div>
+                        {% endif %}
+                        {% if email.po_data.terms_of_payment %}
+                            <div class="form-group">
+                                <label for="terms_of_payment">Terms of Payment</label>
+                                <input type="text" id="terms_of_payment" name="terms_of_payment" value="{{ email.po_data.terms_of_payment }}">
+                            </div>
+                        {% endif %}
+                        {% if email.po_data.discount %}
+                            <div class="form-group">
+                                <label for="discount">Discount</label>
+                                <input type="text" id="discount" name="discount" value="{{ email.po_data.discount }}">
+                            </div>
+                        {% endif %}
+                        {% if email.po_data.other_remarks %}
+                            <div class="form-group">
+                                <label for="other_remarks">Other Remarks</label>
+                                <input type="text" id="other_remarks" name="other_remarks" value="{{ email.po_data.other_remarks }}">
+                            </div>
+                        {% endif %}
+                        <div class="form-group">
+                            <label>Items</label>
+                            <table>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Quantity</th>
+                                    <th>Rate per Unit</th>
+                                    <th>Unit of Measurement</th>
+                                    <th>Delivery Date</th>
+                                </tr>
+                                {% for item in email.po_data.items %}
+                                    {% set idx = loop.index0 %}
+                                    <tr>
+                                        <td><input type="text" name="items-{{ idx }}-item_name" value="{{ item.item_name }}"></td>
+                                        <td><input type="number" name="items-{{ idx }}-quantity" value="{{ item.quantity }}"></td>
+                                        <td><input type="text" name="items-{{ idx }}-rate_per_unit" value="{{ item.rate_per_unit }}"></td>
+                                        <td><input type="text" name="items-{{ idx }}-unit_of_measurement" value="{{ item.unit_of_measurement }}"></td>
+                                        <td><input type="text" name="items-{{ idx }}-delivery_date" value="{{ item.delivery_date }}"></td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit">Save Changes</button>
+                        </div>
+                    </form>
+                    <h3>Attachments:</h3>
+                    {% for attachment in email.attachments %}
+                        <div class="attachment">
+                            <p>Filename: {{ attachment.filename }}</p>
+                            {% if attachment.file_type in ['png', 'jpg', 'jpeg', 'gif'] %}
+                                <img src="data:image/{{ attachment.file_type }};base64,{{ attachment.content }}" alt="{{ attachment.filename }}">
+                            {% else %}
+                                <p>Cannot display attachment of type {{ attachment.file_type }}.</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p><strong>This email does not contain a purchase order.</strong></p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
